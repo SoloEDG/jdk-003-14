@@ -29,12 +29,14 @@ export function load() {
   if (!raw) return false;
   try {
     const d = JSON.parse(raw);
+    // 兼容旧版（v1，单一加号强化）：结构校验通过后由各 restore 内部迁移，
+    // 旧加号统一、确定性地转为「淬炼」一阶，不随机分支、不重复收费。
     if (
       d.version !== 1 ||
       !Array.isArray(d.deck?.cards) ||
       !Array.isArray(d.route?.visited) ||
       !d.battle?.piles ||
-      !Array.isArray(d.reward?.history) ||
+      !d.reward?.history ||
       !Array.isArray(d.shop?.stock) ||
       !d.session
     )

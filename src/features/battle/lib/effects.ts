@@ -27,6 +27,7 @@ export function resolveEffect(
   if (e.type === "block") target.block += e.amount;
   if (e.type === "poison") target.poison += e.amount;
   if (e.type === "strength") target.strength += e.amount;
+  if (e.type === "thorns") target.thorns += e.amount;
   if (e.type === "heal")
     target.hp = Math.min(target.maxHp, target.hp + e.amount);
   return `${label} → ${e.type} ${e.amount}`;

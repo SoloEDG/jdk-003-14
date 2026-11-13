@@ -14,10 +14,11 @@ import {
   spendGold,
   setHp,
   heal,
-  upgradeCard,
+  confirmUpgrade,
   removeCard,
   openCamp,
   useCamp,
+  useCampUpgrade,
   resetDeck,
 } from "@/features/deck";
 import { openReward, claimReward, resetReward } from "@/features/reward";
@@ -88,7 +89,7 @@ export function settle() {
 export function claim(skip: boolean) {
   const grant = claimReward(skip);
   if (!grant) return;
-  if (grant.card) addCard(grant.card);
+  if (grant.card) addCard(grant.card, grant.branch);
   earnGold(grant.gold);
   heal(grant.heal);
   resolveRoute();
@@ -109,8 +110,12 @@ export function buy(id: string) {
     earnGold(p.price);
     return;
   }
-  addCard(p.card);
-  notify("交易完成，卡牌已收入牌组。");
+  addCard(p.card, p.branch);
+  notify(
+    p.branch
+      ? `交易完成，已定向卡牌已收入牌组，方向将被保留。`
+      : "交易完成，卡牌已收入牌组。",
+  );
   persist();
 }
 export function leaveShop() {
@@ -119,7 +124,7 @@ export function leaveShop() {
   switchTab("route");
   persist();
 }
-export function camp(action: "rest" | "upgrade") {
+export function camp(action: "rest") {
   if (
     !session.context ||
     session.context.kind !== "camp" ||
@@ -130,9 +135,28 @@ export function camp(action: "rest" | "upgrade") {
   notify("篝火逐渐熄灭，你准备好继续上路。");
   persist();
 }
-export function upgrade(id: string) {
+/** 篝火免费强化：先在面板预览，确认时走这里，不扣金币。 */
+export function campUpgrade(id: string) {
+  if (
+    !session.context ||
+    session.context.kind !== "camp" ||
+    !useCampUpgrade(id)
+  ) {
+    notify("无法强化：篝火已使用或卡牌已到终阶。");
+    return;
+  }
+  resolveRoute();
+  notify("篝火强化完成，方向已写入这张牌。");
+  persist();
+}
+/** 付费强化确认：复核通过才扣金币并写入方向。 */
+export function confirmPaidUpgrade(id: string) {
   if (battleState.phase === "playing") return;
-  notify(upgradeCard(id) ? "卡牌强化完成。" : "无法强化：金币不足或已经强化。");
+  notify(
+    confirmUpgrade(id, false)
+      ? "卡牌强化完成，方向已锁定。"
+      : "无法强化：金币不足、已到终阶或预览失效。",
+  );
   persist();
 }
 export function remove(id: string) {

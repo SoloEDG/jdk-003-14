@@ -1,7 +1,23 @@
 <script setup lang="ts">
 import { rewardState, chooseReward } from "../model/state";
-import { cards } from "@/shared/cards";
+import { resolveCard, type ResolvedCard } from "@/shared/branches";
+import type { RewardChoice } from "@/shared/domain";
+
 defineEmits<{ claim: [skip: boolean] }>();
+
+function preview(choice: RewardChoice): ResolvedCard {
+  return resolveCard({
+    id: `offer-${choice.key}`,
+    key: choice.key,
+    level: choice.branch ? 1 : 0,
+    branch: choice.branch,
+  });
+}
+
+function isSelected(choice: RewardChoice) {
+  const s = rewardState.selected;
+  return !!s && s.key === choice.key && s.branch === choice.branch;
+}
 </script>
 <template>
   <section class="panel">
@@ -10,7 +26,7 @@ defineEmits<{ claim: [skip: boolean] }>();
     </div>
     <h2>把胜利带进下一场</h2>
     <p class="muted">
-      战斗结束后结算金币，并选择一张新牌。林地额外疗愈，险路改变奖励池。
+      战斗结束后结算金币，并选择一张新牌。带方向徽记的卡牌已经选定成长路线，取得后必须保留；无徽记的同名卡仍保持原样。
     </p>
     <div v-if="rewardState.offer && !rewardState.offer.claimed">
       <div class="notice">
@@ -19,14 +35,24 @@ defineEmits<{ claim: [skip: boolean] }>();
       </div>
       <div class="reward-options">
         <button
-          v-for="key in rewardState.offer.cards"
-          :key="key"
-          :class="{ selected: rewardState.selected === key }"
-          @click="chooseReward(key)"
+          v-for="(choice, i) in rewardState.offer.cards"
+          :key="choice.key + '-' + i"
+          :class="{ selected: isSelected(choice) }"
+          @click="chooseReward(choice)"
         >
-          <b>{{ cards[key]?.name }}</b
-          ><small>{{ cards[key]?.text }}</small
-          ><em>{{ cards[key]?.rarity }}</em>
+          <b>
+            {{ preview(choice).name
+            }}<em
+              v-if="preview(choice).badge"
+              class="branch-tag"
+              >{{ preview(choice).badge }}</em
+            >
+          </b>
+          <small>{{ preview(choice).text }}</small>
+          <small v-if="choice.branch" class="lock-note">
+            🔒 已定向 · 取得后锁定「{{ preview(choice).branchName }}」
+          </small>
+          <em>{{ preview(choice).rarity }}</em>
         </button>
       </div>
       <div class="toolbar">

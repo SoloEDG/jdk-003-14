@@ -5,7 +5,7 @@ import type {
   CardInstance,
   JourneyContext,
 } from "@/shared/domain";
-import { cards } from "@/shared/cards";
+import { normalizeCard, resolveCard } from "@/shared/branches";
 import { uid } from "@/shared/random";
 import { spawnEnemy, enemyIntent, type Enemy } from "../lib/enemies";
 import { makePiles, drawCards, discardHand, type Piles } from "../lib/piles";
@@ -60,7 +60,8 @@ export function beginBattle(
   state.context = context;
   state.hero = { ...emptyHero(), hp, maxHp };
   state.enemy = spawnEnemy(context);
-  state.piles = makePiles(deck, context.nodeId);
+  // 战斗按选中实例的实际分支生成队列：规范化后再洗牌，确保迁移卡一致。
+  state.piles = makePiles(deck.map(normalizeCard), context.nodeId);
   state.energy = 3;
   state.turn = 1;
   state.phase = "playing";
@@ -102,21 +103,19 @@ export function playCard(id: string) {
   if (state.phase !== "playing") return false;
   const card = state.piles.hand.find((c) => c.id === id);
   if (!card) return false;
-  const spec = cards[card.key]!;
-  if (state.energy < spec.cost) return false;
-  state.energy -= spec.cost;
+  // 费用与效果均按该实例的实际分支/阶层结算，卡面与结算同源。
+  const resolved = resolveCard(card);
+  if (state.energy < resolved.cost) return false;
+  state.energy -= resolved.cost;
   state.piles.hand = state.piles.hand.filter((c) => c.id !== id);
-  (spec.kind === "power" ? state.piles.exhaust : state.piles.discard).push(
+  (resolved.kind === "power" ? state.piles.exhaust : state.piles.discard).push(
     card,
   );
   state.queue.push(
-    ...spec.effects.map((e) => ({
-      effect: {
-        ...e,
-        amount: e.amount + (card.upgraded && e.type !== "energy" ? 2 : 0),
-      },
+    ...resolved.effects.map((e) => ({
+      effect: { ...e },
       source: "hero" as const,
-      label: spec.name,
+      label: resolved.name,
     })),
   );
   drain();
@@ -149,6 +148,15 @@ export function exportBattle() {
 }
 export function restoreBattle(d: BattleState) {
   Object.assign(state, d);
+  // 恢复后的实例同样规范化，卡面说明与真实结算保持一致。
+  for (const pile of [
+    state.piles.draw,
+    state.piles.hand,
+    state.piles.discard,
+    state.piles.exhaust,
+  ]) {
+    for (let i = 0; i < pile.length; i++) pile[i] = normalizeCard(pile[i]!);
+  }
 }
 export function resetBattle() {
   state.phase = "idle";

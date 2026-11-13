@@ -1,5 +1,6 @@
-import type { CardInstance } from "@/shared/domain";
-import { uid } from "@/shared/random";
+import type { BranchId, CardInstance } from "@/shared/domain";
+import { createCard, createBranchedCard } from "@/shared/branches";
+
 export function starter(): CardInstance[] {
   return [
     "strike",
@@ -10,11 +11,15 @@ export function starter(): CardInstance[] {
     "venom",
     "focus",
     "shelter",
-  ].map((key) => ({ id: uid("card"), key, upgraded: false }));
+  ].map((key) => createCard(key));
 }
-export function createCard(key: string): CardInstance {
-  return { id: uid("card"), key, upgraded: false };
+
+export { createCard, createBranchedCard };
+
+export function makeCard(key: string, branch: BranchId | null): CardInstance {
+  return createBranchedCard(key, branch);
 }
+
 export function canRemove(size: number) {
   return size > 5;
 }

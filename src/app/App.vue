@@ -106,7 +106,8 @@ const progress = computed(() => (routeState.visited.length / 9) * 100);
             v-else
             :camp="session.context?.kind === 'camp' && !routeState.resolved"
             :locked="battleState.phase === 'playing'"
-            @upgrade="commands.upgrade"
+            @confirm-upgrade="commands.confirmPaidUpgrade"
+            @camp-upgrade="commands.campUpgrade"
             @remove="commands.remove"
             @camp="commands.camp"
           />

@@ -1,5 +1,9 @@
 import { reactive, readonly } from "vue";
-import type { JourneyContext, Purchase } from "@/shared/domain";
+import type {
+  BranchId,
+  JourneyContext,
+  Purchase,
+} from "@/shared/domain";
 import { makeStock, type StockItem } from "../lib/stock";
 import { priceFor } from "../lib/pricing";
 const state = reactive({
@@ -25,7 +29,12 @@ export function itemPrice(id: string) {
 export function preparePurchase(id: string): Purchase | null {
   const item = state.stock.find((s) => s.id === id);
   if (!state.open || !item || item.sold) return null;
-  return { id: item.id, card: item.card, price: itemPrice(id) };
+  return {
+    id: item.id,
+    card: item.card,
+    branch: item.branch,
+    price: itemPrice(id),
+  };
 }
 export function completePurchase(p: Purchase) {
   const item = state.stock.find((s) => s.id === p.id);
@@ -42,6 +51,10 @@ export function exportShop() {
 }
 export function restoreShop(d: ReturnType<typeof exportShop>) {
   Object.assign(state, d);
+  // 旧存档的库存没有方向字段，统一视为未定向。
+  const stock = state.stock as Array<{ branch?: BranchId | null }>;
+  for (const item of stock)
+    if (!("branch" in item) || item.branch === undefined) item.branch = null;
 }
 export function resetShop() {
   state.context = null;

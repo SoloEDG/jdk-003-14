@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { battleState, currentIntent } from "../model/state";
-import { cards } from "@/shared/cards";
+import { resolveCard } from "@/shared/branches";
 import ActorCard from "./ActorCard.vue";
 defineEmits<{ play: [id: string]; end: []; settle: [] }>();
 </script>
@@ -44,20 +44,22 @@ defineEmits<{ play: [id: string]; end: []; settle: [] }>();
           :key="c.id"
           class="playing-card"
           :data-hand-id="c.id"
-          :disabled="cards[c.key]!.cost > battleState.energy"
+          :disabled="resolveCard(c).cost > battleState.energy"
           @click="$emit('play', c.id)"
         >
-          <i>{{ cards[c.key]!.cost }}</i
+          <i>{{ resolveCard(c).cost }}</i
           ><span>{{
-            cards[c.key]!.kind === "attack"
+            resolveCard(c).kind === "attack"
               ? "⚔"
-              : cards[c.key]!.kind === "power"
+              : resolveCard(c).kind === "power"
                 ? "✺"
                 : "◇"
           }}</span>
-          <h3>{{ cards[c.key]!.name }}{{ c.upgraded ? " +" : "" }}</h3>
-          <p>{{ cards[c.key]!.text }}<b v-if="c.upgraded"> 效果 +2</b></p>
-          <small>{{ cards[c.key]!.kind.toUpperCase() }}</small>
+          <h3>{{ resolveCard(c).name }}</h3>
+          <p>{{ resolveCard(c).text }}</p>
+          <small>
+            {{ resolveCard(c).badge || resolveCard(c).kind.toUpperCase() }}
+          </small>
         </button>
       </div>
     </div>
